@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar Sales + Sistema de Carteira — João Amorim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,700;12..96,800&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #060810;
+  --bg2:     #080d18;
+  --bg3:     #0a1022;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text:    #dde6f5;
+  --muted:   #6878a0;
+  --dim:     #2a3558;
+  --accent:  #4a9eff;    
+  --accent2: #2d7dd2;
+  --accent-glow: rgba(74,158,255,0.12);
+  --gold:    #d4a853;
+  --white:   #eef3ff;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;cursor:none;}
+
+#cdot{width:6px;height:6px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s;}
+#cdot.ex{width:36px;height:36px;background:transparent;border:1.5px solid var(--accent);}
+
+#sp{position:fixed;top:0;left:0;right:0;height:2px;background:var(--accent);z-index:300;transform-origin:left;transform:scaleX(0);}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:1.6rem 3rem;background:rgba(6,8,16,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.nav-logo{display:flex;align-items:center;text-decoration:none;}
+.logo-svg{width:42px;height:24px;display:block;}
+.lp{stroke-dasharray:200;stroke-dashoffset:200;animation:drawL 1.4s cubic-bezier(.4,0,.2,1) .2s forwards;fill:none;stroke:var(--gold);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+@keyframes drawL{to{stroke-dashoffset:0;}}
+.nav-back{display:flex;align-items:center;gap:.75rem;font-size:.78rem;color:var(--muted);text-decoration:none;letter-spacing:.06em;text-transform:uppercase;transition:color .2s;}
+.nav-back:hover{color:var(--accent);}
+
+ 
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;  
+  position: relative;
+  overflow: hidden;
+  background: #02040a;
+}
+
+.hero-ambient {
+  position: absolute; inset: 0; z-index: 1;
+  background: radial-gradient(ellipse at 30% 30%, rgba(30, 80, 160, 0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(20, 60, 120, 0.05) 0%, transparent 50%);
+}
+
+.hero-stars {
+  position: absolute; inset: 0;
+  background-image: 
+    radial-gradient(1.5px 1.5px at 10% 10%, rgba(255,255,255,1) 1px, transparent 0),
+    radial-gradient(1.5px 1.5px at 25% 40%, rgba(255,255,255,0.8) 1px, transparent 0),
+    radial-gradient(1px 1px at 45% 20%, rgba(255,255,255,0.6) 1px, transparent 0),
+    radial-gradient(2px 2px at 60% 80%, rgba(255,255,255,0.9) 1px, transparent 0),
+    radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.7) 1px, transparent 0);
+  background-size: 200px 200px;
+  animation: starsDrift 60s linear infinite, starPulse 4s ease-in-out infinite alternate;
+  opacity: 0.95; z-index: 0; pointer-events: none;
+}
+@keyframes starsDrift { 0% { background-position: 0 0; } 100% { background-position: 0 -200px; } }
+@keyframes starPulse { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+
+ 
+.hero-left {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 12rem 2rem 5rem 6%; 
+  position: relative; z-index: 4;
+}
+
+.proj-eyebrow {
+  font-size: 0.95rem; color: var(--accent); letter-spacing: 0.25em; text-transform: uppercase; font-weight: 600; margin-bottom: 2rem;
+  display: flex; align-items: center; gap: 1rem; opacity: 0; animation: hIn .7s .4s forwards;
+}
+.proj-eyebrow::before { content: ''; width: 40px; height: 2px; background: var(--accent); }
+
+.proj-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(4rem, 7.5vw, 8rem);
+  font-weight: 800; color: var(--white); line-height: 0.92; letter-spacing: -0.04em; margin-bottom: 2.5rem;
+  opacity: 0; animation: hIn .8s .55s forwards;
+}
+.proj-title .ghost { color: transparent; -webkit-text-stroke: 1.5px rgba(74,158,255,.35); display: block; }
+
+.proj-sub { font-size: 1.35rem; color: #8899cc; max-width: 650px; line-height: 1.7; font-weight: 400; opacity: 0; animation: hIn .8s .7s forwards; }
+
+ 
+.proj-meta { 
+  display: flex; gap: 5rem; 
+  margin-top: 3rem;  
+  opacity: 0; animation: hIn .8s .85s forwards; 
+}
+.meta-label { font-size: 0.8rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 0.5rem; }
+.meta-val { font-size: 1.15rem; color: var(--text); font-weight: 500; }
+
+ 
+.hero-right { position: relative; z-index: 4; }
+
+.globe-container {
+  position: absolute;
+  bottom: -18%;    
+  right: -13%;      
+  height: 120vh;   
+  width: auto;
+  z-index: 5;
+  opacity: 0;
+  transform: translateX(100px); 
+  animation: globeSlideIn 1.2s cubic-bezier(0.25,0.46,0.45,0.94) 0.1s forwards;
+  pointer-events: none;
+}
+
+.globe-container img {
+  height: 100%; width: auto; display: block;
+  filter: contrast(1.1) brightness(0.9);
+   
+  animation: slowSpin 120s linear infinite; 
+}
+
+ 
+@keyframes globeSlideIn { to { transform: translateX(0); opacity: 1; } }
+@keyframes slowSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+ 
+@media(max-width:900px){ 
+  .globe-container { 
+    height: 60vh; bottom: -10%; right: -30%; opacity: 0; 
+    animation: globeSlideInMobile 1.2s cubic-bezier(0.25,0.46,0.45,0.94) 0.1s forwards;
+  } 
+}
+@keyframes globeSlideInMobile { to { transform: translateX(0); opacity: 0.3; } }
+
+/* ══════════════════════════════
+   IMPACT STRIP
+══════════════════════════════ */
+.impact-strip{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.is-item{padding:3.5rem;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .3s;}
+.is-item:last-child{border-right:none;}
+.is-item::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .4s;}
+.is-item:hover::before{transform:scaleX(1);}
+.is-num{font-family:'Bricolage Grotesque',sans-serif;font-size:2.5rem;font-weight:800;color:var(--white);letter-spacing:-.04em;line-height:1;margin-bottom:.7rem;}
+.is-num .a{color:var(--accent);}
+.is-label{font-size:.85rem;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;}
+
+ 
+.image-showcase {
+  margin: 3rem 0 4rem 0; 
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(74, 158, 255, 0.1); 
+  background: #000;
+}
+
+.project-screenshot {
+  width: 100%; height: auto; display: block; filter: contrast(1.05) brightness(0.95); transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.image-showcase:hover .project-screenshot { transform: scale(1.03); }
+
+/* ══════════════════════════════
+   BODY
+══════════════════════════════ */
+.proj-body{max-width:920px;margin:0 auto;padding:8rem 2rem;}
+.block{margin-bottom:6rem;}
+
+.block-eyebrow{
+  font-size:.7rem;color:var(--accent);
+  letter-spacing:.22em;text-transform:uppercase;font-weight:600;
+  margin-bottom:1.2rem;display:flex;align-items:center;gap:.8rem;
+}
+.block-eyebrow::before{content:'';width:25px;height:1px;background:var(--accent);}
+
+.block-title{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:clamp(2rem,4vw,2.8rem);
+  font-weight:800;color:var(--white);
+  letter-spacing:-.03em;margin-bottom:1.5rem;line-height:1.1;
+}
+
+.block-text{font-size:1.05rem;line-height:1.95;color:#8899cc;}
+.block-text strong{color:var(--text);font-weight:500;}
+.block-text+.block-text{margin-top:1.2rem;}
+
+.quote-box{
+  border:1px solid var(--border); border-left:4px solid var(--accent); padding:3rem;margin:3rem 0; background:var(--accent-glow);
+}
+.quote-text{ font-family:'Bricolage Grotesque',sans-serif; font-size:1.25rem;font-weight:600; color:#c8d8f0; line-height:1.65;letter-spacing:-.02em; }
+.quote-attr{font-size:.8rem;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-top:1rem;}
+
+.challenge-note{
+  background:rgba(74,158,255,.07); border:1px solid rgba(74,158,255,.18); padding:2rem 2.5rem; margin:2.5rem 0; font-size:1rem;line-height:1.8; color:#9db3d8;
+}
+.challenge-note strong{color:var(--text);}
+
+.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin:2.5rem 0;}
+.rule-card{background:var(--bg2);padding:2.5rem;}
+.rule-card-num{font-family:'Bricolage Grotesque',sans-serif;font-size:3rem;font-weight:800;color:rgba(74,158,255,.08);line-height:1;margin-bottom:1rem;}
+.rule-card-title{font-family:'Bricolage Grotesque',sans-serif;font-size:.95rem;font-weight:700;color:var(--white);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.85rem;}
+.rule-card-text{font-size:.9rem;line-height:1.8;color:#8899cc;}
+.rule-card-text code{background:rgba(74,158,255,.12);color:var(--accent);padding:.1rem .4rem;font-size:.8rem;font-family:monospace;border:1px solid rgba(74,158,255,.2);}
+
+.code-block{background:#05080f;border:1px solid var(--border2);padding:2rem 2.5rem;margin:2rem 0;overflow-x:auto;}
+.code-block pre{font-family:'Courier New',monospace;font-size:.85rem;color:#7a90c0;line-height:1.75;}
+.code-block .kw{color:#79c0ff;}
+.code-block .fn{color:#d2a8ff;}
+.code-block .cm{color:#3d5280;font-style:italic;}
+.code-block .num{color:#4a9eff;}
+.code-label{font-size:.65rem;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem;}
+
+.result-strip{
+  background:linear-gradient(135deg,rgba(74,158,255,.1),rgba(45,125,210,.06));
+  border:1px solid rgba(74,158,255,.15);
+  padding:3.5rem;display:grid;grid-template-columns:repeat(3,1fr);
+  gap:2rem;text-align:center;margin:3.5rem 0;
+}
+.rs-num{font-family:'Bricolage Grotesque',sans-serif;font-size:2.5rem;font-weight:800;color:var(--white);line-height:1;}
+.rs-label{font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:.6rem;}
+
+.crm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);margin:2.5rem 0;}
+.crm-card{background:var(--bg2);padding:2.5rem;transition:background .2s;}
+.crm-card:hover{background:var(--bg3);}
+.crm-icon{font-size:1.6rem;margin-bottom:1rem;}
+.crm-title{font-family:'Bricolage Grotesque',sans-serif;font-size:1.05rem;font-weight:700;color:var(--white);margin-bottom:.6rem;}
+.crm-text{font-size:.9rem;line-height:1.8;color:#8899cc;}
+
+.status-flow{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin:2rem 0;}
+.sp{padding:.5rem 1.2rem;font-size:.85rem;font-weight:600;border:1px solid;}
+.s-sem{background:rgba(255,255,255,.04);border-color:var(--border2);color:#7a90c0;}
+.s-frio{background:rgba(74,158,255,.08);border-color:rgba(74,158,255,.25);color:var(--accent);}
+.s-quente{background:rgba(255,196,50,.06);border-color:rgba(255,196,50,.2);color:#f5c842;}
+.s-conv{background:rgba(52,209,122,.08);border-color:rgba(52,209,122,.25);color:#34d17a;}
+.s-arr{color:var(--dim);font-size:1rem;}
+
+ 
+.learn-steps { margin: 2.5rem 0; display: flex; flex-direction: column; gap: 1rem; }
+.learn-step {
+  display: grid; grid-template-columns: 52px 1fr; gap: 1.8rem;
+  padding: 2rem; background: rgba(255,255,255,0.01);
+  border: 1px solid var(--border); border-radius: 8px; transition: all 0.3s ease;
+}
+.learn-step:hover { border-color: var(--accent); background: rgba(74, 158, 255, 0.04); transform: translateX(6px); }
+.ls-num {
+  width: 52px; height: 52px; background: rgba(74,158,255,0.07); border: 1px solid rgba(74,158,255,0.15); display: flex; align-items: center;
+  justify-content: center; font-family: 'Bricolage Grotesque', sans-serif; font-size: 0.95rem; font-weight: 800; color: var(--accent); flex-shrink: 0; transition: all 0.3s ease;
+}
+.learn-step:hover .ls-num { background: var(--accent); color: #000; box-shadow: 0 0 15px rgba(74, 158, 255, 0.4); }
+.ls-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--white); margin-bottom: 0.5rem; transition: color 0.3s; }
+.learn-step:hover .ls-title { color: var(--accent); }
+.ls-desc { font-size: 0.95rem; line-height: 1.8; color: #8899cc; }
+
+ 
+.proj-nav { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg2); border-top: 1px solid var(--border); }
+.proj-nav-link {
+  padding: 3.5rem 4rem; text-decoration: none; color: inherit; border-right: 1px solid var(--border); transition: background 0.2s; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+}
+.proj-nav-link:last-child { border-right: none; text-align: right; }
+.proj-nav-link:hover { background: rgba(255,255,255,0.02); }
+.proj-nav-link::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; }
+.proj-nav-link:hover::before { transform: scaleX(1); }
+.pnl { font-size: 0.7rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 0.5rem; }
+.pnt { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--white); transition: color 0.2s; }
+.proj-nav-link:hover .pnt { color: var(--accent); }
+
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .75s cubic-bezier(.4,0,.2,1),transform .75s cubic-bezier(.4,0,.2,1);}
+.reveal.visible{opacity:1;transform:translateY(0);}
+.rd1{transition-delay:.1s;}.rd2{transition-delay:.2s;}.rd3{transition-delay:.3s;}
+@keyframes hIn{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+
+@media(max-width:900px){
+  nav{padding:1.2rem 1.5rem;}
+  .hero{grid-template-columns:1fr;}
+  .hero-left { padding: 8rem 1.5rem 4rem; }
+  .rules-grid,.crm-grid,.result-strip{grid-template-columns:1fr;}
+  .impact-strip{grid-template-columns:1fr;}
+  .is-item{border-right:none;border-bottom:1px solid var(--border);}
+  .proj-body{padding:4rem 1.5rem;}
+  .proj-nav{grid-template-columns:1fr;}
+  .proj-nav-link { border-right: none; border-bottom: 1px solid var(--border); padding: 2rem 1.5rem; }
+  .proj-nav-link:last-child { text-align: left; border-bottom: none; }
+}
+
+@media (pointer: coarse) {
+  #cursor-dot { display: none !important; }
+  body { cursor: auto; }
+  a, button { cursor: pointer; }
+}
+
+</style>
+</head>
+<body>
+<div id="sp"></div>
+<div id="cdot"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <svg class="logo-svg" viewBox="0 0 50 28" fill="none">
+      <path class="lp" d="M6 4 L6 20 Q6 24 2 24"/>
+      <path class="lp" d="M18 24 L26 4 L34 24 M20 16 L32 16" style="animation-delay:.3s"/>
+    </svg>
+  </a>
+  <a href="index.html" class="nav-back">← Todos os projetos</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-stars"></div>
+  <div class="hero-ambient"></div>
+
+  <div class="hero-left">
+    <div class="proj-eyebrow">01 — Ecossistema Comercial</div>
+    <h1 class="proj-title">
+      Radar Sales<br>
+      <span class="ghost">+ Sistema de Carteira</span>
+    </h1>
+    <p class="proj-sub">Plataforma de prospecção e reativação de clientes construída do zero — dados da Receita Federal, geolocalização por raio de 600m e CRM com gestão de equipes de vendas.</p>
+    
+    <div class="proj-meta">
+      <div>
+        <div class="meta-label">Stack</div>
+        <div class="meta-val">SQL · Receita Federal · n8n · HTML · JS</div>
+      </div>
+      <div>
+        <div class="meta-label">Empresa</div>
+        <div class="meta-val">Grupo Sales</div>
+      </div>
+      <div>
+        <div class="meta-label">Status</div>
+        <div class="meta-val">Em produção</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="globe-container">
+      <img src="imagens/globo.png" alt="Globo Radar Sales" />
+    </div>
+  </div>
+</section>
+
+<div class="impact-strip">
+  <div class="is-item reveal rd1">
+    <div class="is-num">0<span class="a"> → </span>∞</div>
+    <div class="is-label">Base de leads do zero</div>
+  </div>
+  <div class="is-item reveal rd2">
+    <div class="is-num"><span class="a">R$ 0</span></div>
+    <div class="is-label">vs. milhares/mês na API do Google</div>
+  </div>
+  <div class="is-item reveal rd3">
+    <div class="is-num"><span class="a">100%</span></div>
+    <div class="is-label">Duplicatas eliminadas por raiz CNPJ</div>
+  </div>
+</div>
+
+<div class="proj-body">
+
+  <div class="block reveal">
+    <div class="block-eyebrow">O Problema</div>
+    <h2 class="block-title">Prospecção no escuro, reativação no improviso</h2>
+    <p class="block-text">
+      Cada vendedora fazia prospecção manualmente — pesquisando no Google, sem padronização, sem documentação, sem histórico. <strong>Dois vendedores podiam abordar o mesmo cliente sem saber.</strong> Reativação de inativos seguia a mesma lógica: a supervisora enviava uma planilha e torcia para não haver conflito.
+    </p>
+  </div>
+
+<div class="quote-box reveal">
+    <div class="quote-text">"Eu quero ver nossos clientes no mapa. Ao selecionar um, quero que apareçam os possíveis leads num raio de 600m."</div>
+    <div class="quote-attr">— Diretoria Executiva · Grupo Sales</div>
+  </div>
+
+  <div class="image-showcase reveal">
+    <img src="imagens/imagemRadarSales.png" alt="Interface do Radar Sales - Mapa de Calor" class="project-screenshot">
+  </div>
+  
+  <div class="block reveal">
+    <div class="block-eyebrow">O Desafio Técnico</div>
+    <h2 class="block-title">Quatro regras que transformaram dados brutos em leads limpos</h2>
+
+    <div class="rules-grid">
+      <div class="rule-card">
+        <div class="rule-card-num">01</div>
+        <div class="rule-card-title">Filtro de Carteira Atual</div>
+        <div class="rule-card-text">Anti-join (<code>NOT IN</code>) comparando CNPJs da Receita com a base de clientes ativos. Nenhum cliente já existente aparece como lead.</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-card-num">02</div>
+        <div class="rule-card-title">Regra de Ouro — Higienização</div>
+        <div class="rule-card-text">Telefone repetido +3x: verifica o CNAE. Se não for contabilidade (<code>6920-6/01</code>), exclui. Se for, mantém — é o dono do escritório.</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-card-num">03</div>
+        <div class="rule-card-title">Agrupamento Matriz / Filiais</div>
+        <div class="rule-card-text">Agrupa pela raiz do CNPJ (8 dígitos). Mesma raiz + mesmo município = 1 lead. Mesma raiz + municípios diferentes = leads independentes.</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-card-num">04</div>
+        <div class="rule-card-title">Geolocalização via CEP</div>
+        <div class="rule-card-text">Sem lat/lon na base, converteu-se o CEP em coordenadas via BrasilAPI + Nominatim, com cache, retry exponencial e rate limiting de 1.2s.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <div class="block-eyebrow">Implementação</div>
+    <h2 class="block-title">O algoritmo do raio circular</h2>
+    <p class="block-text" style="margin-bottom:1.5rem">
+      Com coordenadas calculadas, o filtro usa Pitágoras (a² + b² ≤ r²) para eliminar os leads que caem fora do círculo de 600m — mais eficiente que Haversine para curtas distâncias.
+    </p>
+    <div class="code-block">
+      <div class="code-label">JavaScript — Filtro de Raio 600m</div>
+      <pre><span class="cm">// 600m convertido para graus — pré-calculado para performance</span>
+<span class="kw">const</span> RAIO_QUADRADO = <span class="num">0.0054</span> * <span class="num">0.0054</span>;
+
+<span class="kw">function</span> <span class="fn">filtrarCirculo</span>(listaBruta, latMin, latMax, lngMin, lngMax) {
+  <span class="kw">const</span> centroLat = (latMin + latMax) / <span class="num">2</span>;
+  <span class="kw">const</span> centroLng = (lngMin + lngMax) / <span class="num">2</span>;
+
+  <span class="kw">return</span> listaBruta.<span class="fn">filter</span>(empresa => {
+    <span class="kw">const</span> dLat = empresa.latitude  - centroLat;
+    <span class="kw">const</span> dLng = empresa.longitude - centroLng;
+    <span class="cm">// a² + b² ≤ r²  →  dentro do círculo exato</span>
+    <span class="kw">return</span> (dLat * dLat + dLng * dLng) &lt;= RAIO_QUADRADO;
+  });
+}</pre>
+    </div>
+  </div>
+
+  <div class="result-strip reveal">
+    <div>
+      <div class="rs-num">0 → ∞</div>
+      <div class="rs-label">Base de leads do zero</div>
+    </div>
+    <div>
+      <div class="rs-num">R$ 0</div>
+      <div class="rs-label">vs. API Google (milhares/mês)</div>
+    </div>
+    <div>
+      <div class="rs-num">100%</div>
+      <div class="rs-label">Duplicatas eliminadas</div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <div class="block-eyebrow">A Sacada — Não Pedida, Mas Necessária</div>
+    <h2 class="block-title">Sistema de Carteira + CRM</h2>
+    <p class="block-text">
+      Ter uma lista de leads sem monitoramento é metade do problema resolvido. <strong>A diretoria não pediu</strong> — mas identifiquei que sem acompanhamento, a ferramenta seria subutilizada. Propus e co-desenvolvi o sistema de carteiras integrado.
+    </p>
+
+    <div class="crm-grid" style="margin-top:2rem">
+      <div class="crm-card">
+        <div class="crm-icon">🗂</div>
+        <div class="crm-title">Carteira por Vendedora</div>
+        <div class="crm-text">A supervisora direciona leads para cada vendedora. Elimina o problema de duas vendedoras abordando o mesmo cliente simultaneamente.</div>
+      </div>
+      <div class="crm-card">
+        <div class="crm-icon">📊</div>
+        <div class="crm-title">Painel da Supervisora</div>
+        <div class="crm-text">Dashboard com KPIs de cada equipe — separado por supervisora, já que a empresa tem múltiplas equipes comerciais independentes.</div>
+      </div>
+      <div class="crm-card">
+        <div class="crm-icon">⏱</div>
+        <div class="crm-title">Expiração Automática</div>
+        <div class="crm-text">Lead não convertido em 30 dias sai da carteira. A vendedora pode solicitar extensão — aprovada diretamente no painel da supervisora.</div>
+      </div>
+      <div class="crm-card">
+        <div class="crm-icon">📝</div>
+        <div class="crm-title">Registro de Tratativas</div>
+        <div class="crm-text">A vendedora registra cada tentativa de contato com anotações e marcos importantes da negociação — histórico completo por lead.</div>
+      </div>
+    </div>
+
+    <div class="block-eyebrow" style="margin-top:2.5rem;margin-bottom:1rem">Fluxo de Status do Lead</div>
+    <div class="status-flow">
+      <span class="sp s-sem">Sem Contato</span>
+      <span class="s-arr">→</span>
+      <span class="sp s-frio">Lead Frio</span>
+      <span class="s-arr">→</span>
+      <span class="sp s-quente">Lead Quente</span>
+      <span class="s-arr">→</span>
+      <span class="sp s-conv">Convertido ✓</span>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <div class="block-eyebrow">Aprendizados</div>
+    <h2 class="block-title">O que esse projeto ensinou</h2>
+    <div class="learn-steps">
+      <div class="learn-step">
+        <div class="ls-num">1</div>
+        <div>
+          <div class="ls-title">Dados públicos podem substituir APIs caras</div>
+          <div class="ls-desc">A Receita Federal disponibiliza um dos maiores repositórios de dados empresariais do mundo — gratuitamente. A chave é a engenharia de limpeza, não o acesso.</div>
+        </div>
+      </div>
+      <div class="learn-step">
+        <div class="ls-num">2</div>
+        <div>
+          <div class="ls-title">Produto bom é produto que fecha o ciclo</div>
+          <div class="ls-desc">Gerar leads sem monitoramento é desperdício. O sistema de carteiras transformou uma ferramenta de busca num sistema de gestão comercial completo.</div>
+        </div>
+      </div>
+      <div class="learn-step">
+        <div class="ls-num">3</div>
+        <div>
+          <div class="ls-title">Restrição orçamentária gera criatividade real</div>
+          <div class="ls-desc">O constraint da API do Google forçou uma solução melhor — mais barata, mais controlada e com dados mais ricos do que a alternativa original.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="proj-nav">
+  <a href="index.html" class="proj-nav-link">
+    <div class="pnl">← Voltar</div>
+    <div class="pnt">Todos os projetos</div>
+  </a>
+  <a href="projeto-agente.html" class="proj-nav-link" style="text-align:right">
+    <div class="pnl">Próximo projeto →</div>
+    <div class="pnt">Agente de Resposta Automática</div>
+  </a>
+</div>
+
+<script>
+ 
+const dot=document.getElementById('cdot');
+document.addEventListener('mousemove',e=>{dot.style.transform=`translate(calc(${e.clientX}px - 50%),calc(${e.clientY}px - 50%))`});
+document.querySelectorAll('a,button,.rule-card,.crm-card,.learn-step,.is-item').forEach(el=>{
+  el.addEventListener('mouseenter',()=>dot.classList.add('ex'));
+  el.addEventListener('mouseleave',()=>dot.classList.remove('ex'));
+});
+
+ 
+const sp=document.getElementById('sp');
+window.addEventListener('scroll',()=>{
+  sp.style.transform=`scaleX(${window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)})`;
+},{passive:true});
+
+ 
+const obs=new IntersectionObserver(e=>e.forEach(el=>{if(el.isIntersecting)el.target.classList.add('visible')}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(r=>obs.observe(r));
+
+</script>
+</body>
+</html>

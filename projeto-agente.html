@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente de Resposta Automática — João Amorim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,700;12..96,800&family=Space+Grotesk:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b12;
+  --bg2: #0d1320;
+  --bg3: #0a1628;
+  --surface: rgba(255,255,255,0.03);
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8e4dc;
+  --muted: #7a8499;
+  --dim: #3d4558;
+  --accent: #4a9eff;    
+  --accent2: #d4a853;
+  --white: #f5f2ec;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; cursor: none; }
+
+#cursor-dot {
+  width: 6px; height: 6px; background: var(--accent);
+  border-radius: 50%; position: fixed; top: 0; left: 0;
+  pointer-events: none; z-index: 9999; transform: translate(-50%,-50%);
+  transition: width 0.2s, height 0.2s, background 0.2s;
+}
+#cursor-dot.expanded { width: 40px; height: 40px; background: transparent; border: 1.5px solid var(--accent); }
+
+#scroll-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); z-index: 200;
+  transform-origin: left; transform: scaleX(0);
+}
+
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.6rem 3rem;
+  background: rgba(7,11,18,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  display: flex; align-items: center; gap: 0.75rem;
+  text-decoration: none; color: var(--white);
+}
+.logo-svg { width: 42px; height: 24px; display: block; }
+.logo-path {
+  stroke-dasharray: 200; stroke-dashoffset: 200;
+  animation: drawLogo 1.4s cubic-bezier(0.4,0,0.2,1) 0.2s forwards;
+  fill: none; stroke: var(--accent2); stroke-width: 2.5;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+@keyframes drawLogo { to { stroke-dashoffset: 0; } }
+
+.nav-back {
+  display: flex; align-items: center; gap: 0.75rem;
+  font-size: 0.78rem; color: var(--muted); text-decoration: none;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-back:hover { color: var(--accent); }
+.nav-back::before { content: '←'; transition: transform 0.2s; }
+.nav-back:hover::before { transform: translateX(-4px); }
+
+ 
+.proj-hero {
+  min-height: 100vh;
+  background: var(--bg3);
+  display: grid; grid-template-columns: 1fr 1fr;  
+  position: relative; overflow: hidden;
+}
+
+ 
+.hero-dots {
+  position: absolute; inset: -100px; z-index: 1;
+  background-image: radial-gradient(rgba(74,158,255,0.15) 1px, transparent 1px);
+  background-size: 32px 32px;
+  animation: dotsShift 30s linear infinite;
+  will-change: transform;
+}
+@keyframes dotsShift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-32px, -32px); }
+}
+
+.hero-glow-left {
+  position: absolute; bottom: 0; left: -10%;
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse at bottom left, rgba(74,158,255,0.08) 0%, transparent 65%);
+  pointer-events: none; z-index: 2;
+}
+
+ 
+.hero-left {
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 8rem 2rem 6rem 8%; 
+  position: relative; z-index: 3;
+}
+
+.proj-num {
+  font-size: 0.95rem; color: var(--accent); letter-spacing: 0.25em;
+  text-transform: uppercase; font-weight: 600; margin-bottom: 2rem;
+  display: flex; align-items: center; gap: 1rem;
+  opacity: 0; animation: fadeUp 0.7s 0.4s forwards;
+}
+.proj-num::before { content: ''; width: 40px; height: 2px; background: var(--accent); }
+
+.proj-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(4rem, 8vw, 8.5rem);
+  font-weight: 800; color: var(--white); line-height: 0.92;
+  letter-spacing: -0.04em; margin-bottom: 2.5rem;
+  opacity: 0; animation: fadeUp 0.8s 0.55s forwards;
+}
+.proj-title .ghost {
+  color: transparent; -webkit-text-stroke: 1.5px rgba(74,158,255,0.35);
+  display: block;
+}
+
+.proj-subtitle {
+  font-size: 1.35rem; color: var(--muted); font-weight: 400;
+  max-width: 650px; line-height: 1.7;
+  opacity: 0; animation: fadeUp 0.8s 0.7s forwards;
+}
+
+.proj-meta-row {
+  display: flex; gap: 5rem; margin-top: 4.5rem;
+  opacity: 0; animation: fadeUp 0.8s 0.85s forwards;
+  padding-top: 3rem; border-top: 1px solid var(--border);
+}
+.meta-label { font-size: 0.8rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 0.5rem; }
+.meta-val { font-size: 1.15rem; color: var(--text); font-weight: 500; }
+
+
+ 
+.hero-right {
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 3;
+  padding: 3rem;
+  perspective: 1500px;
+}
+
+.terminal-glow {
+  position: absolute;
+  width: 550px; height: 550px;
+  background: rgba(74, 158, 255, 0.22);
+  filter: blur(150px);
+  border-radius: 50%;
+  animation: pulseGlow 4s infinite alternate;
+  z-index: 0;
+}
+@keyframes pulseGlow { 0% { opacity: 0.5; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1.1); } }
+
+.ai-terminal {
+  position: relative; z-index: 2;
+  width: 100%; max-width: 460px;
+  background: rgba(4, 9, 20, 0.85); 
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(74, 158, 255, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 30px rgba(74,158,255,0.1);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: 
+    termIn 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.8s forwards,
+    termFloat 6s ease-in-out 2s infinite alternate;
+}
+
+ 
+@keyframes termIn { 
+  from { opacity: 0; transform: scale(1.5) translateY(60px) rotateY(-8deg) rotateX(4deg); } 
+  to { opacity: 1; transform: scale(1.5) translateY(0) rotateY(-8deg) rotateX(4deg); } 
+}
+@keyframes termFloat { 
+  from { transform: scale(1.5) translateY(0) rotateY(-8deg) rotateX(4deg); } 
+  to { transform: scale(1.5) translateY(-15px) rotateY(-4deg) rotateX(2deg); } 
+}
+
+.term-header {
+  background: rgba(255,255,255,0.03);
+  padding: 0.8rem 1.2rem;
+  display: flex; align-items: center;
+  border-bottom: 1px solid rgba(74, 158, 255, 0.15);
+}
+.term-dots { display: flex; gap: 6px; }
+.term-dot { width: 10px; height: 10px; border-radius: 50%; }
+.term-dot:nth-child(1) { background: #ff5f56; }
+.term-dot:nth-child(2) { background: #ffbd2e; }
+.term-dot:nth-child(3) { background: #27c93f; }
+.term-title {
+  margin-left: 1rem; font-family: 'Fira Code', monospace; font-size: 0.68rem;
+  color: var(--accent); letter-spacing: 0.05em;
+}
+
+.term-body { padding: 1.75rem; font-family: 'Fira Code', monospace; font-size: 0.8rem; color: #8aa4cc; }
+.log-line { margin-bottom: 0.85rem; opacity: 0; animation: typeLine 0.1s forwards; line-height: 1.5; }
+.log-line span { font-weight: bold; }
+.c-sys { color: #6878a0; }
+.c-n8n { color: #ff6d5a; }
+.c-ai { color: var(--accent); }
+.c-hitl { color: #d4a853; }
+.c-ok { color: #4ade80; }
+
+.log-line:nth-child(1) { animation-delay: 1.5s; }
+.log-line:nth-child(2) { animation-delay: 2.2s; }
+.log-line:nth-child(3) { animation-delay: 3.5s; }
+.log-line:nth-child(4) { animation-delay: 5.0s; }
+.log-line:nth-child(5) { animation-delay: 5.5s; }
+.log-line:nth-child(6) { animation-delay: 7.0s; }
+
+.cursor { display: inline-block; width: 6px; height: 12px; background: var(--accent); margin-left: 5px; vertical-align: middle; animation: blink 1s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes typeLine { to { opacity: 1; } }
+
+.term-stat-box {
+  margin-top: 2rem;
+  background: rgba(74, 158, 255, 0.05);
+  border: 1px dashed rgba(74, 158, 255, 0.3);
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+  opacity: 0; animation: typeLine 0.5s 7.5s forwards;
+}
+.ts-label { font-family: 'Space Grotesk', sans-serif; font-size: 0.65rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.ts-val { font-family: 'Bricolage Grotesque', sans-serif; font-size: 2.8rem; font-weight: 800; color: var(--white); line-height: 1; margin-bottom: 0.4rem; }
+.ts-compare { font-family: 'Space Grotesk', sans-serif; font-size: 0.75rem; color: #4ade80; font-weight: 500; }
+
+ 
+.n8n-flow-container {
+  opacity: 0;
+  transform: scale(0.96) translateY(30px);
+  transition: opacity 1s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, opacity;
+}
+
+.n8n-flow-container.visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+ 
+.proj-body { max-width: 860px; margin: 0 auto; padding: 7rem 2rem; }
+.block { margin-bottom: 5rem; }
+
+.block-eyebrow {
+  font-size: 0.65rem; color: var(--accent); letter-spacing: 0.2em;
+  text-transform: uppercase; font-weight: 600; margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.block-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--accent); }
+
+.block-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800;
+  color: var(--white); letter-spacing: -0.03em; margin-bottom: 1.25rem; line-height: 1.1;
+}
+
+.block-text { font-size: 0.95rem; line-height: 1.9; color: var(--muted); }
+.block-text strong { color: var(--text); font-weight: 500; }
+.block-text + .block-text { margin-top: 1rem; }
+
+ 
+.ba-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--border); margin: 2.5rem 0;
+}
+.ba-card { padding: 2.5rem; }
+.ba-before { background: rgba(232,93,74,0.04); }
+.ba-after { background: rgba(74,158,255,0.04); }
+.ba-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 1.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+.ba-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ba-before .ba-dot { background: #e85d4a; }
+.ba-after .ba-dot { background: var(--accent); }
+.ba-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; }
+.ba-before .ba-title { color: #e85d4a; }
+.ba-after .ba-title { color: var(--accent); }
+.ba-item {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  font-size: 0.85rem; line-height: 1.7; color: var(--muted); margin-bottom: 0.9rem;
+}
+.ba-item:last-child { margin-bottom: 0; }
+.ba-bullet { flex-shrink: 0; font-size: 0.7rem; font-weight: 700; margin-top: 0.15rem; }
+.ba-before .ba-bullet { color: rgba(232,93,74,0.5); }
+.ba-after .ba-bullet { color: rgba(74,158,255,0.5); }
+
+ 
+.flow-diagram {
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 2.5rem; margin: 2.5rem 0;
+  position: relative; overflow: hidden;
+}
+.flow-diagram::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.flow-diagram-label {
+  font-size: 0.65rem; color: var(--dim); text-transform: uppercase;
+  letter-spacing: 0.15em; margin-bottom: 2rem;
+}
+.flow-nodes { display: flex; align-items: stretch; }
+.flow-node {
+  flex: 1;
+  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+  padding: 1.25rem 1rem; position: relative;
+  transition: border-color 0.2s, background 0.2s;
+}
+.flow-node:hover { border-color: var(--accent); background: rgba(74,158,255,0.04); }
+.flow-node.active { border-color: var(--accent2); background: rgba(212,168,83,0.08); }
+.flow-node.active::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent2);
+}
+.flow-icon { font-size: 1.1rem; margin-bottom: 0.5rem; }
+.flow-node-title { font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 0.2rem; }
+.flow-node-sub { font-size: 0.7rem; color: var(--dim); }
+.flow-connector {
+  display: flex; align-items: center; padding: 0 0.5rem; color: var(--dim);
+  flex-shrink: 0; font-size: 0.9rem;
+}
+
+ 
+.result-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--border); margin: 3rem 0;
+}
+.result-card {
+  background: var(--bg2); padding: 2.5rem;
+  text-align: center; position: relative; overflow: hidden;
+}
+.result-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s;
+}
+.result-card:hover::after { transform: scaleX(1); }
+.result-num {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 2.5rem; font-weight: 800; color: var(--accent);
+  letter-spacing: -0.04em; line-height: 1;
+}
+.result-label { font-size: 0.72rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.6rem; }
+
+ 
+.insight-box {
+  border: 1px solid var(--border2); border-left: 3px solid var(--accent);
+  padding: 2rem 2.5rem; margin: 2.5rem 0; background: rgba(74,158,255,0.03);
+}
+.insight-text {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.15rem; font-weight: 600; color: var(--text);
+  line-height: 1.6; letter-spacing: -0.02em;
+}
+
+ 
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1), transform 0.8s cubic-bezier(0.4,0,0.2,1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+ 
+.proj-nav {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--bg2); border-top: 1px solid var(--border);
+}
+.proj-nav-link {
+  padding: 3rem 3.5rem; text-decoration: none; color: inherit;
+  border-right: 1px solid var(--border); transition: background 0.2s;
+  position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+}
+.proj-nav-link:last-child { border-right: none; text-align: right; }
+.proj-nav-link:hover { background: rgba(255,255,255,0.02); }
+.proj-nav-link::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
+}
+.proj-nav-link:hover::before { transform: scaleX(1); }
+.pnl { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 0.4rem; }
+.pnt { font-family: 'Bricolage Grotesque', sans-serif; font-size: 1rem; font-weight: 700; color: var(--white); transition: color 0.2s; }
+.proj-nav-link:hover .pnt { color: var(--accent); }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 900px) {
+  nav { padding: 1.2rem 1.5rem; }
+  .proj-hero { grid-template-columns: 1fr; }
+  .hero-left { padding: 8rem 1.5rem 3rem; }
+  .hero-right { padding: 2rem 1.5rem 5rem; perspective: none; }
+  
+   
+  .ai-terminal { animation-name: termInMobile, termFloatMobile !important; }
+  @keyframes termInMobile { from { opacity: 0; transform: scale(1) translateY(60px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes termFloatMobile { from { transform: scale(1) translateY(0); } to { transform: scale(1) translateY(-10px); } }
+
+  .proj-body { padding: 4rem 1.5rem; }
+  .ba-grid, .result-grid { grid-template-columns: 1fr; }
+  .flow-nodes { flex-direction: column; }
+  .flow-connector { transform: rotate(90deg); padding: 0.5rem 0; justify-content: center; }
+  .proj-nav { grid-template-columns: 1fr; }
+  .proj-nav-link { border-right: none; border-bottom: 1px solid var(--border); padding: 2rem 1.5rem; }
+  .proj-nav-link:last-child { text-align: left; border-bottom: none;}
+}
+
+@media (pointer: coarse) {
+  #cursor-dot { display: none !important; }
+  body { cursor: auto; }
+  a, button { cursor: pointer; }
+}
+
+</style>
+</head>
+<body>
+<div id="scroll-progress"></div>
+<div id="cursor-dot"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <svg class="logo-svg" viewBox="0 0 50 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path class="logo-path" d="M6 4 L6 20 Q6 24 2 24" stroke-width="2.5"/>
+      <path class="logo-path" d="M18 24 L26 4 L34 24 M20 16 L32 16" stroke-width="2.5" style="animation-delay:0.3s"/>
+    </svg>
+  </a>
+  <a href="index.html" class="nav-back"> Todos os projetos</a>
+</nav>
+
+<div class="proj-hero">
+  <div class="hero-dots"></div>
+  <div class="hero-glow-left"></div>
+
+  <div class="hero-left">
+    <div class="proj-num">02 — Automação com IA</div>
+    <h1 class="proj-title">
+      Agente de<br>Resposta<br>
+      <span class="ghost">Automática</span>
+    </h1>
+    <p class="proj-subtitle">
+      Automação completa do fluxo de reclamações de agregados via n8n e IA Generativa. De 2 dias de espera para 5 minutos — com respostas padronizadas e formais.
+    </p>
+    <div class="proj-meta-row">
+      <div>
+        <div class="meta-label">Stack</div>
+        <div class="meta-val">n8n · Azure AI Foundry</div>
+      </div>
+      <div>
+        <div class="meta-label">Status</div>
+        <div class="meta-val">Em produção</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="terminal-glow"></div>
+    <div class="ai-terminal">
+      <div class="term-header">
+        <div class="term-dots">
+          <div class="term-dot"></div><div class="term-dot"></div><div class="term-dot"></div>
+        </div>
+        <div class="term-title">n8n_Automation_Engine</div>
+      </div>
+      <div class="term-body">
+        <div class="log-line"><span class="c-sys">[SYS]</span> Incoming Webhook recebido.</div>
+        <div class="log-line"><span class="c-n8n">[n8n]</span> Payload: Reclamação_Agregado_ID992.json</div>
+        <div class="log-line"><span class="c-ai">[Azure AI]</span> Processando contexto textual e extraindo intenção...</div>
+        <div class="log-line"><span class="c-ok">[OK]</span> Rascunho oficial de resposta gerado. (0.8s)</div>
+        <div class="log-line"><span class="c-hitl">[HITL]</span> Aguardando validação humana do gestor responsável... <span class="cursor"></span></div>
+        <div class="log-line"><span class="c-ok">[SYS]</span> Aprovado. Disparando e-mail de resolução ao cliente.</div>
+        
+        <div class="term-stat-box">
+          <div class="ts-label">Tempo Total de Execução</div>
+          <div class="ts-val">04m 58s</div>
+          <div class="ts-compare">↓ Redução de ~576× vs. Processo Manual</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="proj-body">
+
+  <div class="block reveal">
+    <div class="block-eyebrow">O Problema</div>
+    <h2 class="block-title">Reclamações sem resposta por dias</h2>
+    <p class="block-text">
+      O processo de atendimento a reclamações de agregados era inteiramente manual. Uma reclamação chegava, ficava na fila, e aguardava alguém disponível para redigir uma resposta — sem padrão de linguagem, sem SLA, sem rastreabilidade. <strong>O tempo de resposta podia chegar a 2 dias úteis</strong>, gerando insatisfação e retrabalho contínuo.
+    </p>
+  </div>
+
+  <div class="ba-grid reveal">
+    <div class="ba-card ba-before">
+      <div class="ba-header">
+        <div class="ba-dot"></div>
+        <div class="ba-title">Antes</div>
+      </div>
+      <div class="ba-item"><span class="ba-bullet">✕</span>Tempo de resposta de até 2 dias</div>
+      <div class="ba-item"><span class="ba-bullet">✕</span>Sem padronização de linguagem</div>
+      <div class="ba-item"><span class="ba-bullet">✕</span>Processo 100% manual</div>
+      <div class="ba-item"><span class="ba-bullet">✕</span>Sem rastreabilidade das tratativas</div>
+      <div class="ba-item"><span class="ba-bullet">✕</span>Depende da disponibilidade humana</div>
+    </div>
+    <div class="ba-card ba-after">
+      <div class="ba-header">
+        <div class="ba-dot"></div>
+        <div class="ba-title">Depois</div>
+      </div>
+      <div class="ba-item"><span class="ba-bullet">✓</span>Resposta em até 5 minutos</div>
+      <div class="ba-item"><span class="ba-bullet">✓</span>Linguagem formal e padronizada</div>
+      <div class="ba-item"><span class="ba-bullet">✓</span>Fluxo 100% automatizado</div>
+      <div class="ba-item"><span class="ba-bullet">✓</span>Histórico registrado automaticamente</div>
+      <div class="ba-item"><span class="ba-bullet">✓</span>Funciona 24/7 sem intervenção humana</div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <div class="block-eyebrow">A Solução</div>
+    <h2 class="block-title">n8n + IA Generativa como backbone</h2>
+    <p class="block-text">
+      O agente foi construído inteiramente no <strong>n8n</strong> — plataforma de automação de workflows — integrada ao <strong>Azure AI Foundry</strong> para processamento de linguagem natural. O fluxo captura a reclamação, classifica o tipo, aciona o modelo de IA para gerar a resposta contextualizada, e entrega de volta ao canal de origem com formatação formal.
+    </p>
+  </div>
+
+ <div class="block reveal" style="margin-top: 4rem;">
+    <div class="block-eyebrow">Por baixo do capô</div>
+    <h2 class="block-title">A Orquestração Real</h2>
+    <p class="block-text" style="margin-bottom: 2.5rem;">
+      Enquanto o fluxo visual foca na jornada de negócio, a engenharia por trás exige múltiplos agentes atuando em cadeia. A arquitetura no <strong>n8n</strong> utiliza um modelo LLM para extração e limpeza de contexto, scripts de parseamento e um segundo LLM dedicado exclusivamente à formatação formal da resposta final.
+    </p>
+    
+    <div class="n8n-flow-container" style="border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 12px; padding: 0.5rem; background: rgba(0,0,0,0.5); box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
+      <img src="https://i.postimg.cc/66kvCB0Z/Fluxo-respostas.png" alt="Workflow Real no n8n" style="width: 100%; height: auto; display: block; border-radius: 6px; filter: contrast(1.05) brightness(0.9); transition: filter 0.3s;" onmouseover="this.style.filter='contrast(1) brightness(1)'" onmouseout="this.style.filter='contrast(1.05) brightness(0.9)'">
+    </div>
+  </div>
+
+  <div class="flow-diagram reveal">
+    <div class="flow-diagram-label">Fluxo do Agente — Arquitetura Simplificada</div>
+    <div class="flow-nodes">
+      <div class="flow-node">
+        <div class="flow-icon">📥</div>
+        <div class="flow-node-title">Reclamação chega</div>
+        <div class="flow-node-sub">Trigger automático</div>
+      </div>
+      <div class="flow-connector">→</div>
+      <div class="flow-node">
+        <div class="flow-icon">🤖</div>
+        <div class="flow-node-title">Azure AI</div>
+        <div class="flow-node-sub">Gera rascunho</div>
+      </div>
+      <div class="flow-connector">→</div>
+      <div class="flow-node active">
+        <div class="flow-icon">⏳</div>
+        <div class="flow-node-title">Aprovação Humana</div>
+        <div class="flow-node-sub">Gestor valida via e-mail</div>
+      </div>
+      <div class="flow-connector">→</div>
+      <div class="flow-node">
+        <div class="flow-icon">✅</div>
+        <div class="flow-node-title">Disparo Final</div>
+        <div class="flow-node-sub">Resposta oficial</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <div class="block-eyebrow">Segurança e Controle</div>
+    <h2 class="block-title">Human-in-the-Loop (HITL)</h2>
+    <p class="block-text">
+      Um detalhe crucial da arquitetura é que <strong>a IA não se comunica com clientes no escuro</strong>. Para garantir segurança institucional e mitigar o risco de alucinações típicas de LLMs, implementei um sistema de aprovação humana no meio do fluxo.
+    </p>
+    <p class="block-text">
+      No n8n, após o nó do <em>Azure AI</em> gerar o texto, o processo entra em estado de espera (<em>Wait Node</em>). Uma notificação com o rascunho é enviada ao gestor da área. Apenas quando o gestor clica no botão <strong>"Aprovar"</strong> (que dispara um webhook de retorno), o fluxo é retomado e o e-mail oficial é despachado. Essa trava de segurança eliminou o receio da diretoria em adotar a ferramenta.
+    </p>
+  </div>
+
+  <div class="result-grid reveal">
+    <div class="result-card">
+      <div class="result-num">~576×</div>
+      <div class="result-label">Redução no tempo de resposta</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num">24/7</div>
+      <div class="result-label">Disponibilidade do agente</div>
+    </div>
+    <div class="result-card">
+      <div class="result-num">100%</div>
+      <div class="result-label">Respostas padronizadas</div>
+    </div>
+  </div>
+
+  <div class="block reveal">
+    <div class="block-eyebrow">Aprendizados</div>
+    <h2 class="block-title">O que ficou</h2>
+    <p class="block-text">
+      Automação bem feita não substitui pessoas — <strong>libera pessoas</strong> para o que importa. O agente não eliminou o time; eliminou o tempo gasto em tarefas repetitivas de baixo valor, permitindo que a equipe foque em casos que realmente exigem julgamento humano.
+    </p>
+
+    <div class="insight-box" style="margin-top:2rem">
+      <div class="insight-text">"IA Generativa só é útil quando tem contexto — o prompt engineering foi tão importante quanto a automação em si."</div>
+    </div>
+
+    <p class="block-text" style="margin-top:1.5rem">
+      A integração entre n8n e Azure AI Foundry demonstrou que a qualidade da instrução dada ao modelo é determinante para o resultado final. <strong>O trabalho real estava em entender o negócio, não em acionar a API.</strong>
+    </p>
+  </div>
+
+</div>
+
+<div class="proj-nav">
+  <a href="projeto-radar.html" class="proj-nav-link">
+    <div class="pnl">← Projeto anterior</div>
+    <div class="pnt">Radar Sales + Sistema de Carteira</div>
+  </a>
+  <a href="projeto-painel.html" class="proj-nav-link">
+    <div class="pnl">Próximo projeto →</div>
+    <div class="pnt">Painel Logístico Gerencial</div>
+  </a>
+</div>
+
+<script>
+const dot = document.getElementById('cursor-dot');
+document.addEventListener('mousemove', e => {
+  dot.style.transform = `translate(calc(${e.clientX}px - 50%), calc(${e.clientY}px - 50%))`;
+});
+document.querySelectorAll('a, .flow-node, .result-card, .ai-terminal').forEach(el => {
+  el.addEventListener('mouseenter', () => dot.classList.add('expanded'));
+  el.addEventListener('mouseleave', () => dot.classList.remove('expanded'));
+});
+
+const progressBar = document.getElementById('scroll-progress');
+window.addEventListener('scroll', () => {
+  const p = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
+  progressBar.style.transform = `scaleX(${p})`;
+});
+
+const reveals = document.querySelectorAll('.reveal, .n8n-flow-container');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+reveals.forEach(r => obs.observe(r));
+</script>
+</body>
+</html>
